@@ -23,6 +23,7 @@ const WorkflowSchema = new mongoose.Schema({
         query: String
     },
     confidenceScore: Number,
+    guestId: { type: String, index: true }, // Added for guest isolation
     language: String, // Added to track language
     createdAt: { type: Date, default: Date.now }
 });

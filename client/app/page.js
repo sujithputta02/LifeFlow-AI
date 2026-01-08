@@ -3,15 +3,23 @@
 import { useWorkflowStore } from '../store/workflowStore';
 import Workflow from '../components/Workflow';
 import HistoryDashboard from '../components/HistoryDashboard';
+import BadgePopup from '../components/BadgePopup';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, ArrowRight, Activity, Zap, Clock } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import VoiceInput from '../components/VoiceInput';
+import LanguageSelector from '../components/LanguageSelector';
 
 export default function Home() {
-    const { workflow, isLoading, generateWorkflow, error, fetchHistory } = useWorkflowStore();
+    const { workflow, isLoading, generateWorkflow, error, fetchHistory, fetchProfile } = useWorkflowStore();
     const [inputGoal, setInputGoal] = useState("");
     const [language, setLanguage] = useState("English");
     const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+
+    useEffect(() => {
+        // Initialize gamification profile
+        fetchProfile();
+    }, [fetchProfile]);
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -58,18 +66,7 @@ export default function Home() {
                         </p>
 
                         <div className="flex justify-center mb-8 relative z-20">
-                            <select
-                                value={language}
-                                onChange={(e) => setLanguage(e.target.value)}
-                                className="bg-white/5 border border-white/10 text-blue-100 text-sm rounded-full px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none backdrop-blur-md cursor-pointer hover:bg-white/10 transition-colors"
-                            >
-                                <option value="English" className="text-black">English</option>
-                                <option value="Hindi" className="text-black">Hindi (हिंदी)</option>
-                                <option value="Spanish" className="text-black">Spanish (Español)</option>
-                                <option value="French" className="text-black">French (Français)</option>
-                                <option value="German" className="text-black">German (Deutsch)</option>
-                                <option value="Telugu" className="text-black">Telugu (తెలుగు)</option>
-                            </select>
+                            <LanguageSelector language={language} setLanguage={setLanguage} />
                         </div>
 
                         <form onSubmit={handleSubmit} className="w-full relative group max-w-lg mx-auto">
@@ -83,15 +80,22 @@ export default function Home() {
                                     value={inputGoal}
                                     onChange={(e) => setInputGoal(e.target.value)}
                                     placeholder="e.g., Hospital admission for surgery..."
-                                    className="w-full pl-14 pr-32 py-5 text-lg rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:bg-white/10 backdrop-blur-xl shadow-2xl transition-all"
+                                    className="w-full pl-14 pr-44 py-5 text-lg rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:bg-white/10 backdrop-blur-xl shadow-2xl transition-all"
                                 />
-                                <button
-                                    type="submit"
-                                    disabled={!inputGoal.trim()}
-                                    className="absolute right-2 top-2 bottom-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg px-6 font-medium transition-all disabled:opacity-0 disabled:translate-x-4 flex items-center gap-2 shadow-lg shadow-blue-500/20"
-                                >
-                                    Start <ArrowRight size={16} />
-                                </button>
+
+                                <div className="absolute right-2 flex items-center gap-2">
+                                    <VoiceInput
+                                        onTranscript={(text) => setInputGoal(text)}
+                                        className="h-10 w-10 p-2 text-white/50 hover:text-white"
+                                    />
+                                    <button
+                                        type="submit"
+                                        disabled={!inputGoal.trim()}
+                                        className="bg-blue-600 hover:bg-blue-500 text-white rounded-lg px-6 py-2.5 font-medium transition-all disabled:opacity-0 disabled:translate-x-4 flex items-center gap-2 shadow-lg shadow-blue-500/20"
+                                    >
+                                        Start <ArrowRight size={16} />
+                                    </button>
+                                </div>
                             </div>
                         </form>
 
@@ -154,6 +158,8 @@ export default function Home() {
                     <Clock size={24} />
                 </motion.button>
             )}
+
+            <BadgePopup />
         </main >
     );
 }
