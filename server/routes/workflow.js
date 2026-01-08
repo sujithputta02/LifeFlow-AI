@@ -1,12 +1,13 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const { generateWorkflow, verifyStepCompletion } = require('../services/azureOpenAI');
 const { findUsefullSources } = require('../services/azureSearch');
 
-const Workflow = require('../models/Workflow'); // Import Model
+const Workflow = require('../models/Workflow');
 
 router.post('/generate-workflow', async (req, res) => {
-    const { goal, language } = req.body;
+    const { goal, language, guestId } = req.body;
 
     if (!goal) {
         return res.status(400).json({ error: 'Goal is required' });
@@ -15,23 +16,29 @@ router.post('/generate-workflow', async (req, res) => {
     try {
         console.log(`Received request for goal: ${goal}`);
 
-        // In a real scenario, we might use search results to feed context to OpenAI
-        // For MVP, we might trust OpenAI or minimal search integration
-        // const sources = await findUsefullSources(goal); 
+        // Fetch relevant sources from Azure AI Search (Hybrid Architecture)
+        const sources = await findUsefullSources(goal);
+        console.log(`🔍 Found ${sources.length} sources from Azure Search`);
 
-        const workflow = await generateWorkflow(goal, language);
+        const workflow = await generateWorkflow(goal, language, sources);
 
-        // Save to Database
+        // Save to Database (Only if connected)
         if (workflow && workflow.steps && workflow.steps.length > 0) {
-            const newWorkflow = new Workflow({
-                goal: workflow.goal,
-                steps: workflow.steps,
-                locationContext: workflow.locationContext,
-                confidenceScore: workflow.confidenceScore,
-                language: language || 'English'
-            });
-            await newWorkflow.save();
-            console.log("💾 Workflow saved to MongoDB");
+            if (mongoose.connection.readyState === 1) {
+                const newWorkflow = new Workflow({
+                    goal: workflow.goal,
+                    steps: workflow.steps,
+                    locationContext: workflow.locationContext,
+                    confidenceScore: workflow.confidenceScore,
+                    confidenceScore: workflow.confidenceScore,
+                    language: language || 'English',
+                    guestId: guestId
+                });
+                await newWorkflow.save();
+                console.log("💾 Workflow saved to MongoDB");
+            } else {
+                console.warn("⚠️ MongoDB not connected. Skipping save to allow offline mode.");
+            }
         }
 
         res.json(workflow);
@@ -44,7 +51,9 @@ router.post('/generate-workflow', async (req, res) => {
 // Get Workflow History
 router.get('/history', async (req, res) => {
     try {
-        const history = await Workflow.find().sort({ createdAt: -1 }).limit(20); // Get last 20
+        const { guestId } = req.query;
+        const query = guestId ? { guestId } : {};
+        const history = await Workflow.find(query).sort({ createdAt: -1 }).limit(20); // Get last 20 for this user
         res.json(history);
     } catch (error) {
         console.error("Error fetching history:", error);

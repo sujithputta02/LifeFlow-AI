@@ -1,0 +1,17 @@
+{
+    "name": "LifeFlow",
+    "short_name": "LifeFlow",
+    "description": "Turn complex bureaucratic nightmares into simple, AI-guided checklists.",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#000000",
+    "theme_color": "#3b82f6",
+    "icons": [
+        {
+            "src": "/icon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "maskable any"
+        }
+    ]
+}
