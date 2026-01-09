@@ -117,16 +117,133 @@ export default function Workflow() {
 
     const handleExportPDF = () => {
         const doc = new jsPDF();
-        doc.setFontSize(20);
-        doc.text(workflow.goal, 20, 20);
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        const margin = 20;
+        let yPos = 20;
 
-        doc.setFontSize(12);
+        // --- Styles & Helpers ---
+        const colors = {
+            primary: [37, 99, 235], // Blue 600
+            secondary: [79, 70, 229], // Indigo 600
+            text: [15, 23, 42],     // Slate 900
+            textLight: [100, 116, 139], // Slate 500
+            bg: [248, 250, 252]     // Slate 50
+        };
+
+        const checkPageBreak = (heightNeeded) => {
+            if (yPos + heightNeeded > pageHeight - margin) {
+                doc.addPage();
+                yPos = 20;
+                return true;
+            }
+            return false;
+        };
+
+        // --- Header (Branding) ---
+        // Blue Gradient Bar
+        doc.setFillColor(...colors.primary);
+        doc.rect(0, 0, pageWidth, 4, 'F');
+
+        // Logo / Title
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(24);
+        doc.setTextColor(...colors.text);
+        doc.text("LifeFlow", margin, yPos + 10);
+
+        doc.setFontSize(10);
+        doc.setTextColor(...colors.textLight);
+        doc.text("AI-Powered Action Plan", margin, yPos + 18);
+
+        // Date
+        const dateStr = new Date().toLocaleDateString();
+        doc.text(`Generated: ${dateStr}`, pageWidth - margin - 35, yPos + 18);
+
+        yPos += 35;
+
+        // --- Document Title ---
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(18);
+        doc.setTextColor(...colors.secondary);
+
+        const titleLines = doc.splitTextToSize(workflow.goal, pageWidth - (margin * 2));
+        doc.text(titleLines, margin, yPos);
+        yPos += (titleLines.length * 8) + 5;
+
+        // Confidence Badge mimic
+        doc.setFillColor(240, 253, 244); // light green bg
+        doc.setDrawColor(22, 163, 74);   // green border
+        doc.setTextColor(22, 163, 74);   // green text
+        doc.roundedRect(margin, yPos, 45, 8, 2, 2, 'FD');
+        doc.setFontSize(9);
+        doc.text(`${workflow.confidenceScore}% Confidence`, margin + 6, yPos + 5.5);
+        yPos += 20;
+
+        // --- Divider ---
+        doc.setDrawColor(226, 232, 240); // Slate 200
+        doc.line(margin, yPos, pageWidth - margin, yPos);
+        yPos += 15;
+
+        // --- Steps Loop ---
         workflow.steps.forEach((step, index) => {
-            const isCompleted = completedSteps.includes(step.stepId) ? "[Done]" : "[ ]";
-            doc.text(`${index + 1}. ${isCompleted} ${step.title}`, 20, 40 + (index * 10));
+            const isCompleted = completedSteps.includes(step.stepId);
+
+            // Check usage for Title + Desc + spacing
+            // Approx height calculation
+            const titleHeight = 8;
+            const descLines = doc.splitTextToSize(step.description, pageWidth - margin - 40); // 40 for indent
+            const descHeight = descLines.length * 6;
+            const cardPadding = 10;
+            const totalStepHeight = titleHeight + descHeight + cardPadding + 10;
+
+            checkPageBreak(totalStepHeight);
+
+            // Step Number Circle
+            if (isCompleted) {
+                doc.setFillColor(...colors.primary);
+            } else {
+                doc.setFillColor(226, 232, 240);
+            }
+            doc.circle(margin + 4, yPos + 4, 4, 'F');
+            doc.setTextColor(isCompleted ? 255 : 100);
+            doc.setFontSize(8);
+            doc.setFont("helvetica", "bold");
+            doc.text(`${index + 1}`, margin + 3, yPos + 5);
+
+            // Title
+            doc.setFontSize(12);
+            doc.setTextColor(...colors.text);
+            doc.text(step.title, margin + 15, yPos + 5);
+
+            // Checkbox Visual
+            if (isCompleted) {
+                doc.setTextColor(...colors.primary);
+                doc.setFontSize(10);
+                doc.text("[ Completed ]", pageWidth - margin - 25, yPos + 5);
+            }
+
+            yPos += 8;
+
+            // Description
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(10);
+            doc.setTextColor(...colors.textLight);
+            doc.text(descLines, margin + 15, yPos);
+
+            yPos += descHeight + 10;
         });
 
-        doc.save("LifeFlow-Checklist.pdf");
+        // --- Footer ---
+        const pageCount = doc.internal.getNumberOfPages();
+        for (let i = 1; i <= pageCount; i++) {
+            doc.setPage(i);
+            doc.setFontSize(8);
+            doc.setTextColor(150);
+            doc.text(`Page ${i} of ${pageCount}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+            doc.text("www.lifeflow.ai", pageWidth - margin - 20, pageHeight - 10);
+        }
+
+        doc.save(`LifeFlow - ${workflow.goal.substring(0, 30)}.pdf`);
     };
 
     const handleShare = () => {

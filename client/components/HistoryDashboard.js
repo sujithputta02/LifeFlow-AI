@@ -86,18 +86,19 @@ export default function HistoryDashboard({ isOpen, onClose }) {
                                     <div className="absolute inset-0 bg-blue-500/5 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
                                 )}
 
-                                <div className="w-28 h-28 relative z-10 -my-2 transition-transform duration-500 group-hover:scale-110 group-hover:-rotate-3">
+                                <div className="w-32 h-32 relative z-10 -my-4 transition-transform duration-500 group-hover:scale-125 group-hover:-rotate-3 group-hover:z-20">
                                     <Badge3D
                                         id={badgeDef.id}
                                         color={badgeDef.color}
                                         icon={badgeDef.icon}
                                         isLocked={!isUnlocked}
-                                        unlockedDate={userBadge?.date} // Passing the date!
+                                        unlockedDate={userBadge?.date}
+                                        cameraPosition={[0, 0, 4]} // Zoom out camera
                                     />
                                 </div>
 
                                 <span className={cn(
-                                    "text-xs font-bold mt-1 text-center bg-clip-text text-transparent bg-gradient-to-r",
+                                    "text-xs font-bold mt-2 text-center bg-clip-text text-transparent bg-gradient-to-r relative z-10",
                                     isUnlocked ? "from-white to-white/70" : "from-white/30 to-white/10"
                                 )}>
                                     {badgeDef.name}

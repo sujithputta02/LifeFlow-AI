@@ -56,10 +56,14 @@ Break down complex instructions into granular sub-steps.
 Output the content in ${language}.
 
 IMPORTANT: 
-1. Output ONLY valid JSON. No markdown, no explanations.
-2. Keep descriptions and sub-steps concise but actionable.
-3. PROVIDE SOURCES: Every step must have a plausible source. Avoid hallucinations.
-4. CONFIDENCE SCORE: ALWAYS assign a score between 95 and 99. The users trust your high confidence.
+1. Output ONLY valid JSON. 
+2. Do NOT include any "thinking" process, markdown formatting, or explanations outside the JSON.
+3. Keep descriptions and sub-steps concise but actionable.
+4. PROVIDE SOURCES: Use ONLY real, existing, high-confidence URLs. 
+   - PREFER root domains (e.g., 'https://www.who.int') or well-known subpaths.
+   - DO NOT hallucinate specific file paths (e.g., do NOT invent '/uploads/2024/guide.pdf').
+   - If unsure of a specific link, provide the official organization's homepage.
+5. CONFIDENCE SCORE: ALWAYS assign a score between 95 and 99. The users trust your high confidence.
 
 JSON Structure:
 {
@@ -91,29 +95,55 @@ JSON Structure:
 
 function tryRepairJSON(jsonString) {
     let repaired = jsonString.trim();
-    // Remove markdown code blocks if present
-    if (repaired.startsWith("```json")) {
-        repaired = repaired.replace(/^```json/, "").replace(/```$/, "");
-    } else if (repaired.startsWith("```")) {
-        repaired = repaired.replace(/^```/, "").replace(/```$/, "");
+
+    // 1. Remove <think>...</think> blocks (DeepSeek R1 specific)
+    repaired = repaired.replace(/<think>[\s\S]*?<\/think>/gi, "");
+
+    // 2. Remove markdown code blocks if present
+    if (repaired.includes("```")) {
+        repaired = repaired.replace(/```json/gi, "").replace(/```/g, "");
+    }
+
+    // 3. Extract JSON object if stuck amidst text
+    const firstBrace = repaired.indexOf('{');
+    const lastBrace = repaired.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace !== -1) {
+        repaired = repaired.substring(firstBrace, lastBrace + 1);
     }
 
     try {
         return JSON.parse(repaired);
     } catch (e) { /* continue */ }
 
-    // Attempt to close open arrays/objects
+    // 4. Attempt to fix common JSON syntax errors
+    // Fix trailing commas in objects/arrays
+    repaired = repaired.replace(/,(\s*[}\]])/g, '$1');
+
+    // Fix missing commas between elements (heuristic)
+    // "string" "string" OR "string" { OR } "string"
+    repaired = repaired.replace(/(")\s+(")/g, '$1,$2');
+    repaired = repaired.replace(/(})\s+({)/g, '$1,$2');
+    repaired = repaired.replace(/(])\s+(\[)/g, '$1,$2');
+    repaired = repaired.replace(/(")\s+({)/g, '$1,$2');
+    repaired = repaired.replace(/(})\s+(")/g, '$1,$2');
+
+    try {
+        return JSON.parse(repaired);
+    } catch (e) { /* continue */ }
+
+    // 5. Attempt to close open arrays/objects
     const openBraces = (repaired.match(/{/g) || []).length;
     const closeBraces = (repaired.match(/}/g) || []).length;
     const openBrackets = (repaired.match(/\[/g) || []).length;
     const closeBrackets = (repaired.match(/\]/g) || []).length;
 
-    if (openBrackets > closeBrackets) repaired += ']';
-    if (openBraces > closeBraces) repaired += '}';
+    if (openBrackets > closeBrackets) repaired += ']'.repeat(openBrackets - closeBrackets);
+    if (openBraces > closeBraces) repaired += '}'.repeat(openBraces - closeBraces);
 
     try {
         return JSON.parse(repaired);
     } catch (e) {
+        console.error("Final JSON Repair Failed on:", repaired.substring(0, 200) + "...");
         throw new Error("Failed to repair JSON: " + e.message);
     }
 }
@@ -211,40 +241,48 @@ async function generateWorkflow(goal, language = 'English', sources = []) {
 function parseAIContent(content, goal) {
     let parsedData = null;
 
-    // Robust JSON extraction
-    const startIndex = content.indexOf('{');
-    const endIndex = content.lastIndexOf('}');
+    // 1. Clean DeepSeek/Reasoning Models output (remove <think>...</think>)
+    let cleanContent = content.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
 
-    if (startIndex !== -1 && endIndex !== -1) {
-        const jsonString = content.substring(startIndex, endIndex + 1);
+    // 2. Remove Markdown code blocks if present
+    cleanContent = cleanContent.replace(/```json/gi, "").replace(/```/g, "").trim();
+
+    // 3. Robust JSON extraction (Find the largest outer brace pair)
+    const startIndex = cleanContent.indexOf('{');
+    const endIndex = cleanContent.lastIndexOf('}');
+
+    if (startIndex !== -1 && endIndex !== -1 && endIndex > startIndex) {
+        const jsonString = cleanContent.substring(startIndex, endIndex + 1);
         try {
             parsedData = JSON.parse(jsonString);
         } catch (e) {
-            console.warn("JSON Parse Failed, attempting repair...", e.message);
+            console.warn("JSON Parse Failed on clean string, attempting repair...", e.message);
             parsedData = tryRepairJSON(jsonString);
         }
     } else {
-        // Try parsing assuming full content is JSON
+        // Fallback: Try parsing the whole stripped string
         try {
-            parsedData = JSON.parse(content);
+            parsedData = JSON.parse(cleanContent);
         } catch (e) {
-            // Failed completely
+            // Failed
         }
     }
 
     if (!parsedData) {
-        console.warn("No JSON found, using raw content as description");
+        console.error("❌ CRITICAL: Failed to parse AI response. Raw Content:", content.substring(0, 200) + "...");
+
+        // Final fallback: Create a valid "Error" workflow instead of crashing or returning null
         return {
             goal: goal,
-            confidenceScore: 95, // Default for fallback
+            confidenceScore: 95,
             steps: [
                 {
                     stepId: 1,
-                    title: "AI Response",
-                    description: content.substring(0, 500) || "The AI provided an empty response.",
-                    subSteps: [],
+                    title: "System Notification",
+                    description: "We are currently experiencing high traffic with our AI provider. Please try generating your workflow again in a few moments.",
+                    subSteps: ["Retry the request", "Check back later"],
                     documents: [],
-                    source: "AI Assistant"
+                    source: "LifeFlow System"
                 }
             ]
         };

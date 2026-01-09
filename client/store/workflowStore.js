@@ -11,6 +11,8 @@ const getGuestId = () => {
     return id;
 };
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+
 export const useWorkflowStore = create((set, get) => ({
     guestId: getGuestId(),
     goal: '',
@@ -26,7 +28,7 @@ export const useWorkflowStore = create((set, get) => ({
     fetchHistory: async () => {
         try {
             const guestId = get().guestId;
-            const response = await fetch(`http://localhost:5000/api/history?guestId=${guestId}`);
+            const response = await fetch(`${API_BASE_URL}/api/history?guestId=${guestId}`);
             if (response.ok) {
                 const data = await response.json();
                 set({ history: data });
@@ -37,7 +39,7 @@ export const useWorkflowStore = create((set, get) => ({
     },
     deleteWorkflow: async (id) => {
         try {
-            await fetch(`http://localhost:5000/api/history/${id}`, {
+            await fetch(`${API_BASE_URL}/api/history/${id}`, {
                 method: 'DELETE',
             });
             set((state) => ({
@@ -60,7 +62,7 @@ export const useWorkflowStore = create((set, get) => ({
     // Sync Helper
     syncGamification: async (points, level, badges) => {
         try {
-            await fetch('http://localhost:5000/api/gamification/update', {
+            await fetch(`${API_BASE_URL}/api/gamification/update`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ guestId: get().guestId, points, level, badges }),
@@ -75,7 +77,7 @@ export const useWorkflowStore = create((set, get) => ({
         try {
             const guestId = get().guestId;
             if (!guestId) return;
-            const res = await fetch(`http://localhost:5000/api/gamification/${guestId}`);
+            const res = await fetch(`${API_BASE_URL}/api/gamification/${guestId}`);
             if (res.ok) {
                 const data = await res.json();
                 set({
@@ -150,7 +152,7 @@ export const useWorkflowStore = create((set, get) => ({
     generateWorkflow: async (goal, language) => {
         set({ isLoading: true, error: null });
         try {
-            const response = await fetch('http://localhost:5000/api/generate-workflow', {
+            const response = await fetch(`${API_BASE_URL}/api/generate-workflow`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ goal, language, guestId: get().guestId }),
@@ -162,8 +164,12 @@ export const useWorkflowStore = create((set, get) => ({
             set((state) => ({
                 workflow: data,
                 isLoading: false,
-                history: [data, ...state.history]
+                history: [data, ...state.history] // Optimistic update
             }));
+
+            // Re-fetch history to ensure sync and getting correct DB states for 3D cards
+            get().fetchHistory();
+
         } catch (error) {
             set({ error: error.message, isLoading: false });
         }
@@ -173,7 +179,7 @@ export const useWorkflowStore = create((set, get) => ({
 
     verifyStep: async (stepId, stepTitle, stepDescription, proof) => {
         try {
-            const response = await fetch('http://localhost:5000/api/verify-step', {
+            const response = await fetch(`${API_BASE_URL}/api/verify-step`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ stepTitle, stepDescription, userProof: proof }),
