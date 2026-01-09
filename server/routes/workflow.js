@@ -9,8 +9,8 @@ const Workflow = require('../models/Workflow');
 router.post('/generate-workflow', async (req, res) => {
     const { goal, language, guestId } = req.body;
 
-    if (!goal) {
-        return res.status(400).json({ error: 'Goal is required' });
+    if (!goal || !guestId) {
+        return res.status(400).json({ error: 'Goal and Guest ID are required' });
     }
 
     try {
@@ -24,20 +24,25 @@ router.post('/generate-workflow', async (req, res) => {
 
         // Save to Database (Only if connected)
         if (workflow && workflow.steps && workflow.steps.length > 0) {
+            console.log(`[DEBUG] Mongoose ReadyState: ${mongoose.connection.readyState}`);
+
             if (mongoose.connection.readyState === 1) {
-                const newWorkflow = new Workflow({
-                    goal: workflow.goal,
-                    steps: workflow.steps,
-                    locationContext: workflow.locationContext,
-                    confidenceScore: workflow.confidenceScore,
-                    confidenceScore: workflow.confidenceScore,
-                    language: language || 'English',
-                    guestId: guestId
-                });
-                await newWorkflow.save();
-                console.log("💾 Workflow saved to MongoDB");
+                try {
+                    const newWorkflow = new Workflow({
+                        goal: workflow.goal,
+                        steps: workflow.steps,
+                        locationContext: workflow.locationContext,
+                        confidenceScore: workflow.confidenceScore,
+                        language: language || 'English',
+                        guestId: guestId
+                    });
+                    const saved = await newWorkflow.save();
+                    console.log(`💾 Workflow saved to MongoDB with ID: ${saved._id}`);
+                } catch (saveError) {
+                    console.error("❌ Error saving to MongoDB:", saveError);
+                }
             } else {
-                console.warn("⚠️ MongoDB not connected. Skipping save to allow offline mode.");
+                console.warn(`⚠️ MongoDB not connected (State: ${mongoose.connection.readyState}). Skipping save.`);
             }
         }
 

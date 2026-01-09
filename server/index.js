@@ -11,7 +11,7 @@ const workflowRoutes = require('./routes/workflow');
 const gamificationRoutes = require('./routes/gamification');
 
 const app = express();
-const port = 5000;
+const port = process.env.PORT || 5000;
 const mongoose = require('mongoose');
 
 // MongoDB Connection

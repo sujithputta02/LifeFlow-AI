@@ -4,101 +4,117 @@
 
 LifeFlow is an intelligent web application designed to help users navigate complex real-world processes—like hospital admissions, government paperwork, or travel logistics—by converting them into clear, step-by-step interactive workflows.
 
-## ✨ Features
+---
 
-- **AI-Powered Workflows**: Instantly generates tailored checklists for any goal using advanced AI models (via OpenRouter/DeepSeek).
-- **Step-by-Step Guidance**: Breaks down massive tasks into manageable sub-steps with clear instructions.
-- **Verified Sources**: Provides links to official government, educational, or organizational sources for credibility.
-- **Interactive Progress Tracking**: Track your completion status with a visual progress bar and "check off" feature.
-- **AI Verification**: Verify your completed steps by describing what you did—the AI acts as a case manager to approve or request more info.
-- **Multi-Language Support**: Generate workflows in English, Hindi, Spanish, French, German, or Telugu.
-- **Text-to-Speech**: Listen to the workflow instructions for better accessibility.
-- **History & Management**: Save your flows automatically, view recent history, and delete old workflows.
-- **Map Integration**: Visualizes the location context for your tasks (e.g., origin to destination).
-- **PDF Export & Sharing**: Download your checklist as a PDF or share the link with others.
+## 🏆 Imagine Cup Implementation
+
+This project leverages the power of the **Microsoft Azure Ecosystem** to deliver intelligent results:
+
+1.  **Advanced AI Intelligence**: Powers the core intelligence using top-tier models (DeepSeek/GPT-4o) via **OpenRouter** to break down goals into logical steps and verify user actions.
+2.  **Azure AI Search (Hybrid Strategy)**:
+    *   **Primary**: Queries a private Azure Search Index for curated, high-confidence administrative guides.
+    *   **Fallback (Smart):** Automatically switches to **Bing Web Search API** if the private index lacks data, ensuring users always get genuine, real-world links.
+
+---
+
+## ✨ Key Features
+
+### 🧠 Intelligent Workflows
+- **AI-Generated Plans**: Instantly creates tailored checklists for any goal (e.g., "How to get a driving license in India").
+- **Real-Time Verification**: The AI acts as a case manager. Describe what you did, and it will approve or request more details.
+
+### 🎮 3D Gamification & Visuals
+- **Interactive 3D Badges**: Beautiful, rotatable 3D rewards (built with `Three.js` and `@react-three/fiber`) for completing milestones.
+- **Dynamic Loading**: "Architecting Your Flow" 3D visualizations while you wait.
+- **Glassmorphism UI**: A premium, modern interface with smooth animations (`Framer Motion`).
+
+### 🔍 Genuine Sources (Hybrid Search)
+- **Trustworthy Links**: Every step is backed by a verified source.
+- **Smart Switch**: Uses local government data (Azure Index) when available, or live web results (Bing) for niche queries.
+
+### 📄 Professional Tools
+- **PDF Export**: Generate a professionally branded, multi-page PDF checklist of your workflow to take offline.
+- **Voice Guidance**: Text-to-Speech integration listens to your questions and reads out steps.
+- **Multi-Language**: Full support for English, Hindi, Spanish, French, German, and Telugu.
+
+---
 
 ## 🛠️ Tech Stack
 
-**Frontend**
+### Frontend
 - **Framework**: Next.js 15 (React 19)
-- **Styling**: Tailwind CSS, Framer Motion (for animations)
-- **State Management**: Zustand
-- **Icons**: Lucide React
-- **Utilities**: jsPDF (Export), SpeechSynthesis API
+- **Styling**: Tailwind CSS, PostCSS
+- **3D Graphics**: Three.js, React Three Fiber, React Three Drei
+- **Animations**: Framer Motion
+- **State**: Zustand
 
-**Backend**
-- **Runtime**: Node.js
-- **Framework**: Express.js
-- **Database**: MongoDB (Mongoose)
-- **AI Integration**: OpenRouter API (Accessing DeepSeek R1 or similar models)
+### Backend
+- **Runtime**: Node.js & Express.js
+- **Database**: MongoDB Atlas (Mongoose) - *Stores User Profiles & Workflow History*
+- **Search**: Azure AI Search + Bing Web Search API
+- **AI**: OpenRouter API (DeepSeek R1 / GPT-4o)
+
+---
 
 ## 🚀 Getting Started
 
-Follow these instructions to set up the project locally.
-
 ### Prerequisites
-
 - [Node.js](https://nodejs.org/) (v18+ recommended)
-- [MongoDB Atlas](https://www.mongodb.com/) account (or local MongoDB)
-- [OpenRouter](https://openrouter.ai/) API Key
+- [MongoDB Atlas](https://www.mongodb.com/) (Connection String)
+- **API Keys**: Azure OpenAI, Azure Search, and (Optional) Bing Search.
 
 ### Installation
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd lifeflow
-   ```
+1.  **Clone the Repository**
+    ```bash
+    git clone https://github.com/yourusername/lifeflow.git
+    cd lifeflow
+    ```
 
-2. **Server Setup**
-   Navigate to the server directory and install dependencies:
-   ```bash
-   cd server
-   npm install
-   ```
+2.  **Server Setup**
+    ```bash
+    cd server
+    npm install
+    ```
+    Create a `.env` file in the `server` directory:
+    ```env
+    PORT=5000
+    MONGODB_URI=mongodb+srv://<user>:<password>@cluster.mongodb.net/lifeflow
+    
+    # AI Service (OpenRouter)
+    OPENROUTER_API_KEY=your_key_here
+    AI_MODEL_NAME=gpt-4o
+    
+    # Azure AI Search (Architecture Requirement 1)
+    AZURE_SEARCH_ENDPOINT=https://<your-service>.search.windows.net
+    AZURE_SEARCH_KEY=your_admin_key
+    AZURE_SEARCH_INDEX=lifeflow-index
+    
+    # Bing Search (Architecture Requirement 2 - Fallback)
+    BING_SEARCH_API_KEY=your_bing_key
+    
+    # Testing
+    USE_MOCK_DATA=false
+    ```
+    Start the server:
+    ```bash
+    npm run dev
+    ```
 
-   Create a `.env` file in the `server` directory with the following credentials:
-   ```env
-   PORT=5000
-   MONGODB_URI=your_mongodb_connection_string
-   OPENROUTER_API_KEY=your_openrouter_api_key
-   AI_MODEL_NAME=deepseek/deepseek-r1-0528:free
-   # Optional: Set to "true" to use mock data for testing without API costs
-   USE_MOCK_DATA=false
-   ```
+3.  **Client Setup**
+    ```bash
+    cd ../client
+    npm install
+    npm run dev
+    ```
 
-   Start the backend server:
-   ```bash
-   npm run dev
-   ```
-   *The server will run on `http://localhost:5000`*
+4.  **Access the App**
+    Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-3. **Client Setup**
-   Open a new terminal, navigate to the client directory, and install dependencies:
-   ```bash
-   cd ../client
-   npm install
-   ```
-
-   Start the frontend development server:
-   ```bash
-   npm run dev
-   ```
-   *The application will optionally run on `http://localhost:3000`*
-
-## 📖 Usage
-
-1. Open your browser and go to `http://localhost:3000`.
-2. Enter a goal in the search bar (e.g., "Renew my driver's license in New York").
-3. Select your preferred language.
-4. Click **Start**.
-5. Follow the generated steps, check off items as you go, and use the "Verify with AI" feature to validate your progress.
-6. Access your previous searches via the clock icon in the bottom right corner.
+---
 
 ## 🤝 Contributing
-
 Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## 📄 License
-
 This project is open-source and available under the [MIT License](LICENSE).
