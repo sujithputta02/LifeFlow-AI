@@ -1,0 +1,12 @@
+# Secrets
+.env
+.env*
+*.env
+
+# Python Cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Node dependencies
+node_modules/

@@ -1,0 +1,14 @@
+# Next.js Build Output
+.next/
+out/
+build/
+dist/
+
+# Dependencies
+node_modules/
+
+# Secrets & Local Configurations
+.env
+.env*
+*.env
+.DS_Store
