@@ -21,14 +21,17 @@ load_dotenv()
 
 logger = get_logger("main")
 
-# DNS Fix for SRV resolution issues (same logic as JS server)
-try:
-    import dns.resolver
-    dns.resolver.default_resolver = dns.resolver.Resolver(configure=False)
-    dns.resolver.default_resolver.nameservers = ['8.8.8.8']
-    logger.info("Successfully configured custom DNS server (8.8.8.8) for database connection.")
-except Exception as dns_err:
-    logger.warning(f"Could not configure custom DNS server: {dns_err}")
+# DNS Fix for SRV resolution issues (applied only locally)
+if not os.getenv("WEBSITE_INSTANCE_ID"):
+    try:
+        import dns.resolver
+        dns.resolver.default_resolver = dns.resolver.Resolver(configure=False)
+        dns.resolver.default_resolver.nameservers = ['8.8.8.8']
+        logger.info("Successfully configured custom DNS server (8.8.8.8) for database connection.")
+    except Exception as dns_err:
+        logger.warning(f"Could not configure custom DNS server: {dns_err}")
+else:
+    logger.info("Azure environment detected. Using default cloud DNS resolver.")
 
 # Initialize Database
 MONGODB_URI = os.getenv("MONGODB_URI")
